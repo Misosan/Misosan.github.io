@@ -1,90 +1,198 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Progate</title>
-  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
-  <link rel="stylesheet" type="text/css" href="stylesheet.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Future Capsule Pro+</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<style>
+body{font-family:sans-serif;margin:0}
+#map{height:55vh}
+.panel{padding:12px}
+input,textarea,button{width:100%;padding:8px;margin:5px 0;box-sizing:border-box}
+.card{border:1px solid #ccc;padding:10px;margin:8px 0}
+</style>
 </head>
 <body>
-  <header>
-    <div class="container">
-      <div class="header-left">
-        <img class="logo" src="https://prog-8.com/images/html/advanced/main_logo.png">
-      </div>
-      <span class="fa fa-bars menu-icon"></span>
-      <div class="header-right">
-        <a href="#">レッスン</a>
-        <a href="#">新規登録</a>
-        <a href="#" class="login">ログイン</a>
-      </div>
-    </div>
-  </header>
-  <div class="top-wrapper">
-    <div class="container">
-      <h1>LEARN TO CODE.<br>LEARN TO BE CREATIVE.</h1>
-      <p>Progateはオンラインプログラミング学習サービスです。<br>初心者にもやさしいスライドとレッスンで、ウェブサービスを作りながらプログラミングを学んでいきましょう。</p>
-      <div class="btn-wrapper">
-        <a href="#" class="btn signup">新規登録はこちら</a>
-        <p>or</p>
-        <a href="#" class="btn facebook"><span class="fa fa-facebook"></span>Facebookで登録</a>
-        <a href="#" class="btn twitter"><span class="fa fa-twitter"></span>Twitterで登録</a>
-      </div>
-    </div>
-  </div>
-  <div class="lesson-wrapper">
-    <div class="container">
-      <div class="heading">
-        <h2>Learn Where to Get Started!</h2>
-      </div>
-      <div class="lessons">
-        <div class="lesson">
-          <div class="lesson-icon">
-            <img src="https://prog-8.com/images/html/advanced/html.png">
-            <p>HTML & CSS</p>
-          </div>
-          <p class="text-contents">ウェブページの作成に使用される言語です。HTMLとCSSを組み合わせることで、静的なページを作り上げることができます。</p>
-        </div>
-        <div class="lesson">
-          <div class="lesson-icon">
-            <img src="https://prog-8.com/images/html/advanced/jQuery.png">
-            <p>jQuery</p>
-          </div>
-          <p class="text-contents">素敵な動きを手軽に実装できるJavaScriptライブラリです。 アニメーション効果をつけたり、Ajax（エイジャックス）を使って外部ファイルを読み込んだりと色々なことができます。</p>
-        </div>
-        <div class="lesson">
-          <div class="lesson-icon">
-            <img src="https://prog-8.com/images/html/advanced/ruby.png">
-            <p>Ruby</p>
-          </div>
-          <p class="text-contents">オープンソースの動的なプログラミング言語で、 シンプルさと高い生産性を備えています。大きなWebアプリケーションから小さな日用ツールまで、さまざまなソフトウェアを作ることができます。</p>
-        </div>
-        <div class="lesson">
-          <div class="lesson-icon">
-            <img src="https://prog-8.com/images/html/advanced/php.png">
-            <p>PHP</p>
-          </div>
-          <p class="text-contents">HTMLだけではページの内容を変えることはできません。PHPはHTMLにプログラムを埋め込み、それを可能にします。</p>
-        </div>
-      </div>
-      <div class="clear"></div>
-    </div>
-  </div>
-  <div class="message-wrapper">
-    <div class="container">
-      <div class="heading">
-        <h2>さぁ、あなたもProgateでプログラミングを学んでみませんか?</h2>
-        <h3>Let's learn to code, learn to be creative!</h3>
-      </div>
-      <span class="btn message">さっそく開発する</span>
-    </div>
-  </div>
-  <footer>
-    <div class="container">
-      <img src="https://prog-8.com/images/html/advanced/footer_logo.png">
-      <p>Learn to Code, Learn to be Creative.</p>
-    </div>
-  </footer>
+<div id="map"></div>
+ 
+<div class="panel">
+<h3>場所検索</h3>
+<input id="searchBox" placeholder="例: 東京駅">
+<button onclick="searchPlace()">検索</button>
+ 
+<h3>タイムカプセル作成</h3>
+<textarea id="message" placeholder="メッセージ"></textarea>
+<input type="datetime-local" id="openDate">
+<input type="number" id="groupSize" min="1" value="1" placeholder="必要人数">
+<button onclick="saveCapsule()">保存</button>
+ 
+<div id="capsules"></div>
+</div>
+ 
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+const map=L.map('map').setView([35.68,139.76],13);
+ 
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+attribution:'© OpenStreetMap'
+}).addTo(map);
+ 
+let selected=null;
+let tempMarker=null;
+ 
+if("Notification" in window){
+Notification.requestPermission();
+}
+ 
+map.on("click",e=>{
+selected=e.latlng;
+if(tempMarker) map.removeLayer(tempMarker);
+tempMarker=L.marker(selected).addTo(map);
+});
+ 
+async function searchPlace(){
+const q=document.getElementById("searchBox").value;
+const res=await fetch(
+  `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`
+);
+const data=await res.json();
+ 
+if(data.length){
+   const p=data[0];
+   map.setView([p.lat,p.lon],15);
+   if(tempMarker) map.removeLayer(tempMarker);
+   tempMarker=L.marker([p.lat,p.lon]).addTo(map);
+   selected={lat:Number(p.lat),lng:Number(p.lon)};
+}
+}
+ 
+function getCapsules(){
+return JSON.parse(localStorage.getItem("capsules")||"[]");
+}
+ 
+function saveCapsules(c){
+localStorage.setItem("capsules",JSON.stringify(c));
+}
+ 
+function saveCapsule(){
+if(!selected){alert("場所を選択");return;}
+ 
+const c=getCapsules();
+ 
+c.push({
+   id:Date.now(),
+   message:message.value,
+   openDate:openDate.value,
+   lat:selected.lat,
+   lng:selected.lng,
+   required:Number(groupSize.value),
+   participants:0
+});
+ 
+saveCapsules(c);
+render();
+}
+ 
+function distance(lat1,lon1,lat2,lon2){
+const R=6371000;
+const dLat=(lat2-lat1)*Math.PI/180;
+const dLon=(lon2-lon1)*Math.PI/180;
+const a=Math.sin(dLat/2)**2+
+     Math.cos(lat1*Math.PI/180)*
+     Math.cos(lat2*Math.PI/180)*
+     Math.sin(dLon/2)**2;
+return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+ 
+function joinGroup(id){
+const c=getCapsules();
+const cap=c.find(x=>x.id===id);
+cap.participants++;
+saveCapsules(c);
+render();
+}
+ 
+function openCheck(id){
+const cap=getCapsules().find(x=>x.id===id);
+ 
+navigator.geolocation.getCurrentPosition(pos=>{
+ 
+   const now=new Date();
+   const openDate=new Date(cap.openDate);
+ 
+   if(now<openDate){
+      alert("まだ開封日時前");
+      return;
+   }
+ 
+   if(cap.participants < cap.required){
+      alert(`参加人数不足 ${cap.participants}/${cap.required}`);
+      return;
+   }
+ 
+   const d=distance(
+      pos.coords.latitude,
+      pos.coords.longitude,
+      cap.lat,
+      cap.lng
+   );
+ 
+   if(d>100){
+      alert("指定地点から "+Math.round(d)+"m");
+      return;
+   }
+ 
+   alert("🔓\\n"+cap.message);
+ 
+});
+ 
+}
+ 
+function checkNotifications(){
+const caps=getCapsules();
+const now=new Date();
+ 
+caps.forEach(c=>{
+   const openDate=new Date(c.openDate);
+ 
+   if(now>=openDate && !c.notified){
+      if(Notification.permission==="granted"){
+        new Notification("タイムカプセル開封可能",{
+          body:"指定場所へ向かってください"
+        });
+      }
+      c.notified=true;
+   }
+});
+ 
+saveCapsules(caps);
+}
+ 
+function render(){
+const div=document.getElementById("capsules");
+div.innerHTML="";
+ 
+getCapsules().forEach(c=>{
+ 
+   L.marker([c.lat,c.lng]).addTo(map);
+ 
+   const card=document.createElement("div");
+   card.className="card";
+ 
+   card.innerHTML=`
+<p>開封日:${c.openDate}</p>
+<p>グループ:${c.participants}/${c.required}</p>
+<button onclick="joinGroup(${c.id})">参加</button>
+<button onclick="openCheck(${c.id})">開封確認</button>
+   `;
+ 
+   div.appendChild(card);
+});
+}
+ 
+render();
+setInterval(checkNotifications,30000);
+</script>
 </body>
 </html>
